@@ -1,7 +1,4 @@
-use crate::{
-	instruction::{Address, Register, Value},
-	vm::Vm,
-};
+use crate::instruction::{Address, Register, Value};
 
 /// The type of branch/jump that will be taken by the instruction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

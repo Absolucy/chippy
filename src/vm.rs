@@ -24,6 +24,8 @@ pub struct Vm {
 	pub sound_timer: u8,
 	/// The keypad of the CHIP-8 virtual machine.
 	pub keypad: Box<[bool; 16]>,
+	/// The display of the CHIP-8 virtual machine.
+	pub display: Box<[bool; 64 * 32]>,
 }
 
 impl Vm {
@@ -48,10 +50,10 @@ impl Vm {
 	/// wherever memory is written.
 	pub fn invalidate_cache<R>(&mut self, memory_range: R)
 	where
-		R: RangeBounds<u16>,
+		R: RangeBounds<usize>,
 	{
 		self.instruction_cache
-			.retain(|key, _| !memory_range.contains(key));
+			.retain(|key, _| !memory_range.contains(&(*key as usize)));
 	}
 
 	pub fn execute(&mut self) {
@@ -83,6 +85,7 @@ impl Default for Vm {
 			delay_timer: 0,
 			sound_timer: 0,
 			keypad: Box::new([false; 16]),
+			display: Box::new([false; 64 * 32]),
 		}
 	}
 }
