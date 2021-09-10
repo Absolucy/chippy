@@ -58,7 +58,7 @@ pub fn debugger(vm: &mut Vm, paused: &mut bool) {
 					if *paused {
 						let mut x = format!("0x{:X}", vm.program_counter);
 						ui.text_edit_singleline(&mut x);
-						vm.index_register =
+						vm.program_counter =
 							u16::from_str_radix(x.trim().trim_start_matches("0x").trim(), 16)
 								.unwrap_or(vm.program_counter);
 					} else {

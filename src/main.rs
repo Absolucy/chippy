@@ -49,6 +49,7 @@ async fn main() {
 		if show_debugger {
 			debugger::debugger(&mut vm, &mut paused);
 		}
+		draw_text(&format!("{} FPS", get_fps()), 16., 16., 32., WHITE);
 		next_frame().await;
 	}
 }
