@@ -96,8 +96,8 @@ impl Vm {
 				ProgramCounter::Next
 			}
 			Instruction::Return => {
-				let return_address = self.stack.pop().unwrap();
-				ProgramCounter::Jump(return_address)
+				let return_address = self.stack.pop().expect("empty stack");
+				ProgramCounter::Jump(return_address + 2)
 			}
 			Instruction::Random(register, value) => {
 				let register = register as usize;
