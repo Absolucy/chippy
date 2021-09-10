@@ -40,10 +40,10 @@ async fn main() {
 			let y = (idx / 64) as f32 * y_scale;
 			draw_rectangle(x, y, x_scale, y_scale, if *pixel { WHITE } else { BLACK });
 		}
-		if is_key_down(KeyCode::Period) {
+		if is_key_pressed(KeyCode::Period) {
 			show_debugger = !show_debugger;
 		}
-		if is_key_down(KeyCode::Comma) {
+		if is_key_pressed(KeyCode::Comma) {
 			paused = !paused;
 		}
 		if show_debugger {
