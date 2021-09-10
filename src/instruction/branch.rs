@@ -1,4 +1,7 @@
-use crate::instruction::{Address, Register, Value};
+use crate::{
+	instruction::{Address, Register, Value},
+	vm::{ProgramCounter, Vm},
+};
 
 /// The type of branch/jump that will be taken by the instruction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,6 +49,40 @@ impl BranchInstruction {
 			branch_type,
 			branch_target,
 			inverted,
+		}
+	}
+
+	/// Execute the branch instruction.
+	pub fn execute(self, vm: &mut Vm) -> ProgramCounter {
+		let should_branch = match self.branch_type {
+			BranchType::Unconditional => true,
+			BranchType::Call => {
+				vm.stack.push(vm.program_counter);
+				true
+			}
+			BranchType::Equal { register, value } => {
+				let register = register as usize;
+				assert!(register < vm.registers.len());
+				vm.registers[register] == value
+			}
+			BranchType::EqualRegister {
+				register_a,
+				register_b,
+			} => {
+				let register_a = register_a as usize;
+				let register_b = register_b as usize;
+				assert!(register_a < vm.registers.len() && register_b < vm.registers.len());
+				vm.registers[register_a] == vm.registers[register_b]
+			}
+			BranchType::KeyPressed { .. } => todo!(),
+		};
+		if should_branch {
+			match self.branch_target {
+				BranchTarget::Address(address) => ProgramCounter::Jump(address),
+				BranchTarget::Skip => ProgramCounter::Skip,
+			}
+		} else {
+			ProgramCounter::Next
 		}
 	}
 }

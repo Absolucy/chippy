@@ -1,5 +1,6 @@
 pub mod arthimetic;
 pub mod branch;
+pub mod draw;
 pub mod load;
 pub mod logical;
 
@@ -91,8 +92,8 @@ impl Instruction {
 			}),
 			// 6xkk - LD Vx, byte
 			0x6000 => Instruction::Load(load::LoadInstruction {
-				from: load::LoadTarget::Register(((opcode & 0x0F00) >> 8) as Register),
-				into: load::LoadTarget::Value((opcode & 0x00FF) as Value),
+				from: load::LoadTarget::Value((opcode & 0x00FF) as Value),
+				into: load::LoadTarget::Register(((opcode & 0x0F00) >> 8) as Register),
 			}),
 			// 7xkk - ADD Vx, byte
 			0x7000 => Instruction::Arthimetic(arthimetic::ArthimeticInstruction {

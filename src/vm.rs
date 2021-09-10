@@ -1,15 +1,16 @@
-use crate::instruction::Instruction;
+use crate::instruction::{draw, Address, Instruction};
+use bitvec::{array::BitArray, BitArr};
 use fnv::FnvHashMap;
 use std::ops::RangeBounds;
 
 /// The CHIP-8 virtual machine and interpreter.
 pub struct Vm {
 	/// The memory of the CHIP-8 virtual machine.
-	pub memory: Box<[u8; 4096]>,
+	pub memory: [u8; 4096],
 	/// The cache of parsed instructions.
 	pub instruction_cache: FnvHashMap<u16, Instruction>,
 	/// The registers of the CHIP-8 virtual machine.
-	pub registers: Box<[u8; 16]>,
+	pub registers: [u8; 16],
 	/// The index register of the CHIP-8 virtual machine.
 	pub index_register: u16,
 	/// The program counter of the CHIP-8 virtual machine.
@@ -23,9 +24,9 @@ pub struct Vm {
 	/// The sound timer of the CHIP-8 virtual machine.
 	pub sound_timer: u8,
 	/// The keypad of the CHIP-8 virtual machine.
-	pub keypad: Box<[bool; 16]>,
+	pub keypad: BitArr!(for 0xF),
 	/// The display of the CHIP-8 virtual machine.
-	pub display: Box<[bool; 64 * 32]>,
+	pub display: BitArr!(for 64 * 32),
 }
 
 impl Vm {
@@ -63,12 +64,45 @@ impl Vm {
 			.instruction_cache
 			.entry(self.program_counter)
 			.or_insert_with(|| {
-				let opcode = u16::from_le_bytes([
+				let opcode = u16::from_be_bytes([
 					self.memory[self.program_counter as usize],
 					self.memory[self.program_counter as usize + 1],
 				]);
+				println!("opcode {:X} at 0x{:X}", opcode, self.program_counter);
 				Instruction::parse(opcode)
 			});
+		let next_step = match instruction {
+			Instruction::Sys => panic!("attempted to do system call"),
+			Instruction::Clear => {
+				draw::clear(self);
+				ProgramCounter::Next
+			}
+			Instruction::Return => {
+				let return_address = self.stack.pop().unwrap();
+				ProgramCounter::Jump(return_address)
+			}
+			Instruction::Random(_, _) => todo!("Random"),
+			Instruction::Draw(x, y, row) => {
+				draw::draw(self, x, y, row);
+				ProgramCounter::Next
+			}
+			Instruction::LoadKey(_) => todo!("LoadKey"),
+			Instruction::AddI(_) => todo!("AddI"),
+			Instruction::Load(load) => {
+				load.execute(self);
+				ProgramCounter::Next
+			}
+			Instruction::Branch(branch) => branch.execute(self),
+			Instruction::Logical(logic) => {
+				logic.execute(self);
+				ProgramCounter::Next
+			}
+			Instruction::Arthimetic(arthimetic) => {
+				arthimetic.execute(self);
+				ProgramCounter::Next
+			}
+		};
+		next_step.next(self);
 	}
 }
 
@@ -76,16 +110,32 @@ impl Default for Vm {
 	fn default() -> Self {
 		Vm {
 			instruction_cache: FnvHashMap::default(),
-			memory: Box::new([0; 4096]),
-			registers: Box::new([0; 16]),
+			memory: [0; 4096],
+			registers: [0; 16],
 			index_register: 0,
 			program_counter: 0x200,
 			stack: Vec::with_capacity(16),
 			stack_pointer: 0,
 			delay_timer: 0,
 			sound_timer: 0,
-			keypad: Box::new([false; 16]),
-			display: Box::new([false; 64 * 32]),
+			keypad: BitArray::zeroed(),
+			display: BitArray::zeroed(),
+		}
+	}
+}
+
+pub enum ProgramCounter {
+	Next,
+	Skip,
+	Jump(Address),
+}
+
+impl ProgramCounter {
+	pub fn next(self, vm: &mut Vm) {
+		match self {
+			ProgramCounter::Next => vm.program_counter += 2,
+			ProgramCounter::Skip => vm.program_counter += 4,
+			ProgramCounter::Jump(address) => vm.program_counter = address,
 		}
 	}
 }

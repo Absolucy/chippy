@@ -34,6 +34,9 @@ impl LoadInstruction {
 	/// Execute the load instruction.
 	pub fn execute(self, vm: &mut Vm) {
 		match (self.from, self.into) {
+			(LoadTarget::Address(address), LoadTarget::I) => {
+				vm.index_register = address;
+			}
 			(LoadTarget::Register(from), LoadTarget::Register(into)) => {
 				let from = from as usize;
 				let into = into as usize;
