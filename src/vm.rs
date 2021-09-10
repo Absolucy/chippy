@@ -87,6 +87,7 @@ impl Vm {
 					self.memory[self.program_counter as usize + 1],
 				]);
 				Instruction::parse(opcode)
+					.unwrap_or_else(|| panic!("invalid opcode: {:04X}", opcode))
 			});
 		let next_step = match instruction {
 			Instruction::Sys => panic!("attempted to do system call"),

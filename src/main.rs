@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate derive_more;
 
+pub mod debugger;
 pub mod instruction;
 pub mod subsystem;
 pub mod vm;
@@ -24,20 +25,29 @@ async fn main() {
 	let rom = std::fs::read(std::env::args().nth(1).unwrap()).unwrap();
 	let mut vm = Vm::new();
 	vm.load_program(&rom);
-	let x_scale = screen_width() / 64.0;
-	let y_scale = screen_height() / 32.0;
 	let mut last_time = Instant::now();
-	// Don't bother rendering anything until the display is set
-	while vm.display.not_any() {
-		step(&mut vm, &mut last_time);
-	}
+	let mut show_debugger = false;
+	let mut paused = false;
 	loop {
-		step(&mut vm, &mut last_time);
+		if !paused {
+			step(&mut vm, &mut last_time);
+		}
 		clear_background(BLACK);
+		let x_scale = screen_width() / 64.0;
+		let y_scale = screen_height() / 32.0;
 		for (idx, pixel) in vm.display.iter().enumerate() {
 			let x = (idx % 64) as f32 * x_scale;
 			let y = (idx / 64) as f32 * y_scale;
 			draw_rectangle(x, y, x_scale, y_scale, if *pixel { WHITE } else { BLACK });
+		}
+		if is_key_down(KeyCode::Period) {
+			show_debugger = !show_debugger;
+		}
+		if is_key_down(KeyCode::Comma) {
+			paused = !paused;
+		}
+		if show_debugger {
+			debugger::debugger(&mut vm, &mut paused);
 		}
 		next_frame().await;
 	}

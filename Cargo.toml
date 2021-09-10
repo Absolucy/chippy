@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 bitvec = "0.22.3"
 derive_more = "0.99.16"
+egui = "0.14.2"
+egui-macroquad = "0.6.0"
 fnv = "1.0.7"
 macroquad = "0.3.9"
 nanorand = "0.6.1"
