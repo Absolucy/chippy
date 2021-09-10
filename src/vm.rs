@@ -1,7 +1,6 @@
 use crate::instruction::{draw, Address, Instruction};
 use bitvec::{array::BitArray, BitArr};
 use fnv::FnvHashMap;
-use macroquad::prelude::*;
 use nanorand::Rng;
 use std::ops::RangeBounds;
 

@@ -10,3 +10,6 @@ bitvec = "0.22.3"
 fnv = "1.0.7"
 macroquad = "0.3.9"
 nanorand = "0.6.1"
+
+[profile.release]
+lto = "thin"
