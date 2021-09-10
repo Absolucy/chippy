@@ -120,7 +120,12 @@ impl Vm {
 					None => ProgramCounter::Pause,
 				}
 			}
-			Instruction::AddI(_) => todo!("AddI"),
+			Instruction::AddI(register) => {
+				let register = register as usize;
+				assert!(register < self.registers.len());
+				self.index_register += self.registers[register] as u16;
+				ProgramCounter::Next
+			}
 			Instruction::Load(load) => {
 				load.execute(self);
 				ProgramCounter::Next
