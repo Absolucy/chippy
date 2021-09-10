@@ -66,8 +66,8 @@ impl Instruction {
 			// 3xnn - SE Vx, byte
 			0x3000 => Instruction::Branch(branch::BranchInstruction {
 				branch_type: branch::BranchType::Equal {
-					register: ((opcode & 0x0F00) >> 8) as u8,
-					value: (opcode & 0x00FF) as u8,
+					register: ((opcode & 0x0F00) >> 8) as Register,
+					value: (opcode & 0x00FF) as Value,
 				},
 				branch_target: branch::BranchTarget::Skip,
 				inverted: false,
@@ -75,8 +75,8 @@ impl Instruction {
 			// 4xkk - SNE Vx, byte
 			0x4000 => Instruction::Branch(branch::BranchInstruction {
 				branch_type: branch::BranchType::Equal {
-					register: ((opcode & 0x0F00) >> 8) as u8,
-					value: (opcode & 0x00FF) as u8,
+					register: ((opcode & 0x0F00) >> 8) as Register,
+					value: (opcode & 0x00FF) as Value,
 				},
 				branch_target: branch::BranchTarget::Skip,
 				inverted: true,

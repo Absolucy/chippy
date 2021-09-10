@@ -75,7 +75,7 @@ impl BranchInstruction {
 				vm.registers[register_a] == vm.registers[register_b]
 			}
 			BranchType::KeyPressed { .. } => todo!(),
-		};
+		} ^ self.inverted;
 		if should_branch {
 			match self.branch_target {
 				BranchTarget::Address(address) => ProgramCounter::Jump(address),
