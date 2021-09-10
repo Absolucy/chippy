@@ -1,7 +1,28 @@
 use crate::instruction::{draw, Address, Instruction};
 use bitvec::{array::BitArray, BitArr};
 use fnv::FnvHashMap;
+use macroquad::prelude::*;
+use nanorand::Rng;
 use std::ops::RangeBounds;
+
+const FONT: [u8; 80] = [
+	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+	0x20, 0x60, 0x20, 0x20, 0x70, // 1
+	0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+	0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+	0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+	0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+	0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+	0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+	0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+	0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+	0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+	0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+	0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+	0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+	0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+	0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+];
 
 /// The CHIP-8 virtual machine and interpreter.
 pub struct Vm {
@@ -17,8 +38,6 @@ pub struct Vm {
 	pub program_counter: u16,
 	/// The stack of the CHIP-8 virtual machine.
 	pub stack: Vec<u16>,
-	/// The stack pointer of the CHIP-8 virtual machine.
-	pub stack_pointer: u16,
 	/// The delay timer of the CHIP-8 virtual machine.
 	pub delay_timer: u8,
 	/// The sound timer of the CHIP-8 virtual machine.
@@ -68,7 +87,6 @@ impl Vm {
 					self.memory[self.program_counter as usize],
 					self.memory[self.program_counter as usize + 1],
 				]);
-				println!("opcode {:X} at 0x{:X}", opcode, self.program_counter);
 				Instruction::parse(opcode)
 			});
 		let next_step = match instruction {
@@ -81,12 +99,27 @@ impl Vm {
 				let return_address = self.stack.pop().unwrap();
 				ProgramCounter::Jump(return_address)
 			}
-			Instruction::Random(_, _) => todo!("Random"),
+			Instruction::Random(register, value) => {
+				let register = register as usize;
+				assert!(register < self.registers.len());
+				self.registers[register] = nanorand::tls_rng().generate::<u8>() & value;
+				ProgramCounter::Next
+			}
 			Instruction::Draw(x, y, row) => {
 				draw::draw(self, x, y, row);
 				ProgramCounter::Next
 			}
-			Instruction::LoadKey(_) => todo!("LoadKey"),
+			Instruction::LoadKey(register) => {
+				let register = register as usize;
+				assert!(register < self.registers.len());
+				match crate::subsystem::key::get_key() {
+					Some(key) => {
+						self.registers[register] = key as u8;
+						ProgramCounter::Next
+					}
+					None => ProgramCounter::Pause,
+				}
+			}
 			Instruction::AddI(_) => todo!("AddI"),
 			Instruction::Load(load) => {
 				load.execute(self);
@@ -108,14 +141,15 @@ impl Vm {
 
 impl Default for Vm {
 	fn default() -> Self {
+		let mut memory = [0; 4096];
+		memory[0x50..=0x9F].copy_from_slice(&FONT);
 		Vm {
 			instruction_cache: FnvHashMap::default(),
-			memory: [0; 4096],
+			memory,
 			registers: [0; 16],
 			index_register: 0,
 			program_counter: 0x200,
 			stack: Vec::with_capacity(16),
-			stack_pointer: 0,
 			delay_timer: 0,
 			sound_timer: 0,
 			keypad: BitArray::zeroed(),
@@ -125,6 +159,7 @@ impl Default for Vm {
 }
 
 pub enum ProgramCounter {
+	Pause,
 	Next,
 	Skip,
 	Jump(Address),
@@ -133,6 +168,7 @@ pub enum ProgramCounter {
 impl ProgramCounter {
 	pub fn next(self, vm: &mut Vm) {
 		match self {
+			ProgramCounter::Pause => {}
 			ProgramCounter::Next => vm.program_counter += 2,
 			ProgramCounter::Skip => vm.program_counter += 4,
 			ProgramCounter::Jump(address) => vm.program_counter = address,

@@ -214,7 +214,7 @@ impl Instruction {
 				// Ex9E - SKP Vx
 				0x009E => Instruction::Branch(branch::BranchInstruction {
 					branch_type: branch::BranchType::KeyPressed {
-						value: ((opcode & 0x0F00) >> 8) as Register,
+						register: ((opcode & 0x0F00) >> 8) as Register,
 					},
 					branch_target: branch::BranchTarget::Skip,
 					inverted: false,
@@ -222,7 +222,7 @@ impl Instruction {
 				// ExA1 - SKNP Vx
 				0x00A1 => Instruction::Branch(branch::BranchInstruction {
 					branch_type: branch::BranchType::KeyPressed {
-						value: ((opcode & 0x0F00) >> 8) as Register,
+						register: ((opcode & 0x0F00) >> 8) as Register,
 					},
 					branch_target: branch::BranchTarget::Skip,
 					inverted: true,

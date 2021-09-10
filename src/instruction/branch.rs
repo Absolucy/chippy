@@ -19,7 +19,7 @@ pub enum BranchType {
 		register_b: Register,
 	},
 	/// The instruction will jump if the key is pressed down.
-	KeyPressed { value: Value },
+	KeyPressed { register: Register },
 }
 
 /// Where the branch will jump if the condition is true.
@@ -74,7 +74,11 @@ impl BranchInstruction {
 				assert!(register_a < vm.registers.len() && register_b < vm.registers.len());
 				vm.registers[register_a] == vm.registers[register_b]
 			}
-			BranchType::KeyPressed { .. } => todo!(),
+			BranchType::KeyPressed { register } => {
+				let register = register as usize;
+				assert!(register < vm.keypad.len());
+				vm.keypad[vm.registers[register] as usize]
+			}
 		} ^ self.inverted;
 		if should_branch {
 			match self.branch_target {

@@ -68,8 +68,9 @@ impl LoadInstruction {
 				assert!(from < vm.registers.len());
 				vm.sound_timer = vm.registers[from];
 			}
-			(LoadTarget::Font(_from), LoadTarget::I) => {
-				todo!("TODO: implement font loading")
+			(LoadTarget::Font(from), LoadTarget::I) => {
+				let address = 0x50 + (from as u16 * 5);
+				vm.index_register = address;
 			}
 			(LoadTarget::Register(from), LoadTarget::Bcd) => {
 				let from = from as usize;
