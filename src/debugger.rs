@@ -14,6 +14,12 @@ pub fn debugger(vm: &mut Vm, paused: &mut bool) {
 			} else if !*paused && ui.button("Pause").clicked() {
 				*paused = true;
 			}
+			if ui.button("Single Step").clicked() {
+				vm.execute();
+			}
+			if ui.button("Step Over").clicked() {
+				vm.program_counter += 2;
+			}
 			ui.label(format!(
 				"Cached Instructions: {}",
 				vm.instruction_cache.len()
