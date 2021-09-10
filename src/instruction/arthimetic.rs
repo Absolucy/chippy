@@ -4,7 +4,7 @@ use crate::{
 };
 
 /// The type of arthimetic operation to perform.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum ArthimeticOp {
 	/// Addition.
 	Add,
@@ -17,18 +17,28 @@ pub enum ArthimeticOp {
 }
 
 /// The values used for arthimetic.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum ArthimeticValue {
 	/// A single register.
+	#[display(fmt = "V{:X}", _0)]
 	Register(Register),
 	/// A register and a value.
+	#[display(fmt = "V{:X}, {}", _0, _1)]
 	RegisterValue(Register, Value),
+	#[display(fmt = "V{:X}, V{:X}", _0, _1)]
 	/// A register and a register.
 	RegisterRegister(Register, Register),
 }
 
 /// An arthimetic instruction, using 2 registers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
+#[display(
+	fmt = "{}{} {}{}",
+	"if *inverted { \"NOT \" } else { \"\" }",
+	"op",
+	"values",
+	"if *carry_flag { \" (carrying)\" } else { \"\" }"
+)]
 pub struct ArthimeticInstruction {
 	/// The type of arthimetic operation to perform.
 	pub op: ArthimeticOp,

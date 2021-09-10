@@ -12,7 +12,7 @@ pub type Register = u8;
 pub type Value = u8;
 
 /// A single CHIP-8 instruction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum Instruction {
 	/// 0nnn - SYS addr
 	/// This is a stub that panics.
@@ -22,12 +22,16 @@ pub enum Instruction {
 	/// 00EE - RETURN
 	Return,
 	/// Cxkk - RND Vx, byte
+	#[display(fmt = "Random into V{:X} & 0x{:X}", _0, _1)]
 	Random(Register, Value),
 	/// Dxyn - DRW Vx, Vy, nibble
+	#[display(fmt = "Draw Sprite at {},{} with {} rows", _0, _1, _2)]
 	Draw(Register, Register, Value),
 	/// Fx0A - LD Vx, K
+	#[display(fmt = "Load Key into V{:X}", _0)]
 	LoadKey(Register),
 	/// Fx1E - ADD I, Vx
+	#[display(fmt = "Add V{:X} to I", _0)]
 	AddI(Register),
 	/// A loading instruction
 	Load(load::LoadInstruction),

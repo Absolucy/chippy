@@ -3,28 +3,37 @@ use crate::{
 	vm::Vm,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 /// The target to load the value into.
 pub enum LoadTarget {
 	/// Load a register.
+	#[display(fmt = "V{:X}", _0)]
 	Register(Register),
 	/// Load an address.
+	#[display(fmt = "Memory(0x{:X})", _0)]
 	Address(Address),
 	/// Load a value.
+	#[display(fmt = "0x{:X}", _0)]
 	Value(Value),
 	/// Load I.
+	#[display(fmt = "I")]
 	I,
 	/// Load the specific font.
+	#[display(fmt = "Font({:X})", _0)]
 	Font(u8),
 	/// Load the delay timer.
+	#[display(fmt = "Delay Timer")]
 	DelayTimer,
 	/// Load the sound timer.
+	#[display(fmt = "Sound Timer")]
 	SoundTimer,
 	/// Load the BCD representation of a register
+	#[display(fmt = "BCD")]
 	Bcd,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
+#[display(fmt = "Load from {} into {}", from, into)]
 pub struct LoadInstruction {
 	pub from: LoadTarget,
 	pub into: LoadTarget,

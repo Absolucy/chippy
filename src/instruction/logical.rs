@@ -1,7 +1,7 @@
 use crate::{instruction::Register, vm::Vm};
 
 /// The type of logical operation to perform.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum LogicalOp {
 	/// Logical AND.
 	And,
@@ -12,7 +12,8 @@ pub enum LogicalOp {
 }
 
 /// A logical instruction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
+#[display(fmt = "{} V{:X}, V{:X}", op, register_a, register_b)]
 pub struct LogicalInstruction {
 	/// The logical operation to perform.
 	pub op: LogicalOp,

@@ -4,7 +4,7 @@ use crate::{
 };
 
 /// The type of branch/jump that will be taken by the instruction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum BranchType {
 	/// The instruction will unconditionally jump to the target.
 	Unconditional,
@@ -12,27 +12,33 @@ pub enum BranchType {
 	/// address to the stack.
 	Call,
 	/// The instruction will jump if the register equals the value.
+	#[display(fmt = "V{:X} == 0x{:X}", register, value)]
 	Equal { register: Register, value: Value },
 	/// The instruction will jump if the two registers equal.
+	#[display(fmt = "V{:X} == V{:X}", register_a, register_b)]
 	EqualRegister {
 		register_a: Register,
 		register_b: Register,
 	},
+	#[display(fmt = "Key(V{:X})", register)]
 	/// The instruction will jump if the key is pressed down.
 	KeyPressed { register: Register },
 }
 
 /// Where the branch will jump if the condition is true.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum BranchTarget {
 	/// The instruction will jump to the target address.
+	#[display(fmt = "Jump to 0x{:X}", _0)]
 	Address(Address),
 	/// The instruction will skip the next instruction.
+	#[display(fmt = "Skip Next Instruction")]
 	Skip,
 }
 
 /// A branching instruction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
+#[display(fmt = "If {} Then {}", branch_type, branch_target)]
 pub struct BranchInstruction {
 	/// The type of branch/jump that will be taken by the instruction.
 	pub branch_type: BranchType,
