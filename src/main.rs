@@ -23,15 +23,13 @@ fn step(vm: &mut Vm, last_time: &mut Instant) {
 
 #[macroquad::main("CHIP-8 Emulator")]
 async fn main() {
-	let rom = std::fs::read(std::env::args().nth(1).unwrap()).unwrap();
 	let mut vm = Vm::new();
-	vm.load_program(&rom);
 	let mut last_time = Instant::now();
 	let mut show_debugger = false;
+	let mut drawing_area = ui::draw(&mut vm);
 	loop {
 		step(&mut vm, &mut last_time);
 		clear_background(BLACK);
-		let drawing_area = ui::draw(&mut vm);
 		let (x_scale, y_scale) = (drawing_area.width() / 64.0, drawing_area.height() / 32.0);
 		let (left, top) = (drawing_area.left(), drawing_area.top());
 		for (idx, pixel) in vm.display.iter().enumerate() {
@@ -45,6 +43,7 @@ async fn main() {
 				if *pixel { WHITE } else { BLACK },
 			);
 		}
+		drawing_area = ui::draw(&mut vm);
 		if is_key_pressed(KeyCode::Period) {
 			show_debugger = !show_debugger;
 		}

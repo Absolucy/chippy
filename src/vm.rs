@@ -28,6 +28,7 @@ const FONT: [u8; 80] = [
 
 /// The CHIP-8 virtual machine and interpreter.
 pub struct Vm {
+	pub mode: VmMode,
 	/// The memory of the CHIP-8 virtual machine.
 	pub memory: [u8; 4096],
 	/// The cache of parsed instructions.
@@ -48,6 +49,8 @@ pub struct Vm {
 	pub keypad: BitArr!(for 0xF),
 	/// The display of the CHIP-8 virtual machine.
 	pub display: BitArr!(for 64 * 32),
+	/// Whether high-resolution mode is enabled or not.
+	pub high_resolution: bool,
 	/// Whether the CHIP-8 virtual machine is paused or not.
 	pub paused: bool,
 	/// The number of cycles that the CHIP-8 virtual machine has executed.
@@ -64,15 +67,36 @@ impl Vm {
 		Self::default()
 	}
 
+	pub fn setup_memory(&mut self) {
+		self.memory.iter_mut().for_each(|byte| *byte = 0);
+		self.memory[0x50..=0x9F].copy_from_slice(&FONT);
+	}
+
 	/// Loads a CHIP-8 program into the virtual machine.
 	pub fn load_program(&mut self, program: &[u8]) {
 		// Ensure the program is not too large (0x1000 - 0x200)
 		assert!(program.len() <= 0xe00);
+		// Clean up the VM's state.
+		self.registers.iter_mut().for_each(|byte| *byte = 0);
+		self.index_register = 0;
+		self.program_counter = 0x200;
+		self.cycles = 0;
+		self.keypad.set_all(false);
+		self.display.set_all(false);
+		self.instruction_cache.clear();
+		self.setup_memory();
 		// Reserve enough memory for the program's instructions in the instruction cache.
 		self.instruction_cache
-			.reserve(program.len() / 2 - self.instruction_cache.capacity());
+			.reserve((program.len() / 2).saturating_sub(self.instruction_cache.capacity()));
 		// Copy the program to memory.
 		self.memory[0x200..0x200 + program.len()].copy_from_slice(program);
+		// Unpause the VM.
+		self.paused = false;
+	}
+
+	/// Sets the interperter mode of the CHIP-8 virtual machine.
+	pub fn set_mode(&mut self, mode: VmMode) {
+		self.mode = mode;
 	}
 
 	/// Invalidate the instruction cache for a memory range.
@@ -101,8 +125,12 @@ impl Vm {
 					self.memory[self.program_counter as usize],
 					self.memory[self.program_counter as usize + 1],
 				]);
-				Instruction::parse(opcode)
-					.unwrap_or_else(|| panic!("invalid opcode: {:04X}", opcode))
+				Instruction::parse(opcode, self.mode).unwrap_or_else(|| {
+					panic!(
+						"invalid opcode: {:04X} at 0x{:X}",
+						opcode, self.program_counter
+					)
+				})
 			});
 		let next_step = match instruction {
 			Instruction::Sys => panic!("attempted to do system call"),
@@ -141,6 +169,10 @@ impl Vm {
 				self.index_register += self.registers[register] as u16;
 				ProgramCounter::Next
 			}
+			Instruction::SetHighResolution(mode) => {
+				self.high_resolution = mode;
+				ProgramCounter::Next
+			}
 			Instruction::Load(load) => {
 				load.execute(self);
 				ProgramCounter::Next
@@ -164,11 +196,10 @@ impl Vm {
 
 impl Default for Vm {
 	fn default() -> Self {
-		let mut memory = [0; 4096];
-		memory[0x50..=0x9F].copy_from_slice(&FONT);
 		Vm {
+			mode: VmMode::Chip8,
 			instruction_cache: FnvHashMap::default(),
-			memory,
+			memory: [0; 4096],
 			registers: [0; 16],
 			index_register: 0,
 			program_counter: 0x200,
@@ -177,7 +208,8 @@ impl Default for Vm {
 			sound_timer: 0,
 			keypad: BitArray::zeroed(),
 			display: BitArray::zeroed(),
-			paused: false,
+			high_resolution: false,
+			paused: true,
 			cycles: 0,
 			last_cycle_time: Duration::new(0, 0),
 			average_cycle_time: Duration::new(0, 0),
@@ -200,5 +232,29 @@ impl ProgramCounter {
 			ProgramCounter::Skip => vm.program_counter += 4,
 			ProgramCounter::Jump(address) => vm.program_counter = address,
 		}
+	}
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Display)]
+pub enum VmMode {
+	/// Interpert as the original CHIP-8 interperter would.
+	Chip8,
+	/// Interpert using CHIP-48.
+	Chip48,
+	/// Interpert using SUPER-CHIP.
+	SuperChip,
+}
+
+impl VmMode {
+	pub fn is_chip8(&self) -> bool {
+		matches!(self, VmMode::Chip8)
+	}
+
+	pub fn is_chip48(&self) -> bool {
+		matches!(self, VmMode::Chip48 | VmMode::SuperChip)
+	}
+
+	pub fn is_super_chip(&self) -> bool {
+		matches!(self, VmMode::SuperChip)
 	}
 }

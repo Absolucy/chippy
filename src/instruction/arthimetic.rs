@@ -10,9 +10,15 @@ pub enum ArthimeticOp {
 	Add,
 	/// Subtraction.
 	Sub,
-	/// Shift left
+	/// Shift left (original CHIP-8 version)
+	#[display(fmt = "Shl")]
+	ShlOld,
+	/// Shift right (original CHIP-8 version)
+	#[display(fmt = "Shr")]
+	ShrOld,
+	/// Shift left (modern CHIP-48 version)
 	Shl,
-	/// Shift right
+	/// Shift right (modern CHIP-48 version)
 	Shr,
 }
 
@@ -95,6 +101,16 @@ impl ArthimeticInstruction {
 				if self.carry_flag {
 					vm.registers[0xF] = !overflow as u8;
 				}
+			}
+			ArthimeticOp::ShlOld => {
+				vm.registers[register_a] = vm.registers[register_b];
+				vm.registers[0xF] = (vm.registers[register_a] >> 7) & 1;
+				vm.registers[register_a] <<= 1;
+			}
+			ArthimeticOp::ShrOld => {
+				vm.registers[register_a] = vm.registers[register_b];
+				vm.registers[0xF] = vm.registers[register_a] & 1;
+				vm.registers[register_a] >>= 1;
 			}
 			_ => unreachable!(),
 		}

@@ -13,6 +13,7 @@ egui-macroquad = "0.6.0"
 fnv = "1.0.7"
 macroquad = "0.3.9"
 nanorand = "0.6.1"
+rfd = "0.4.4"
 
 [profile.release]
 lto = "thin"

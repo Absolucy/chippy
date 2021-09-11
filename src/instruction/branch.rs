@@ -31,6 +31,9 @@ pub enum BranchTarget {
 	/// The instruction will jump to the target address.
 	#[display(fmt = "Jump to 0x{:X}", _0)]
 	Address(Address),
+	/// The instruction will jump to the target address + offset.
+	#[display(fmt = "Jump to 0x{:X} + V{:X}", _0, _1)]
+	AddressOffset(Address, Register),
 	/// The instruction will skip the next instruction.
 	#[display(fmt = "Skip Next Instruction")]
 	Skip,
@@ -89,6 +92,12 @@ impl BranchInstruction {
 		if should_branch {
 			match self.branch_target {
 				BranchTarget::Address(address) => ProgramCounter::Jump(address),
+				BranchTarget::AddressOffset(address, offset_register) => {
+					let offset_register = offset_register as usize;
+					assert!(offset_register < vm.registers.len());
+					let offset = vm.registers[offset_register] as u16;
+					ProgramCounter::Jump(address + offset)
+				}
 				BranchTarget::Skip => ProgramCounter::Skip,
 			}
 		} else {

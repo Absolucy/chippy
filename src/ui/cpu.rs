@@ -11,6 +11,7 @@ fn register(ui: &mut Ui, name: impl ToString, value: u16) {
 
 pub fn draw(ui: &mut Ui, vm: &mut Vm) {
 	CollapsingHeader::new("CPU").show(ui, |ui| {
+		ui.label(format!("Running in {} mode", vm.mode));
 		Grid::new("cpu info").num_columns(2).show(ui, |ui| {
 			ui.add(Label::new("Cycle Count").strong());
 			ui.add(Label::new(format!("{}", vm.cycles)).monospace());

@@ -18,6 +18,9 @@ pub enum LoadTarget {
 	/// Load I.
 	#[display(fmt = "I")]
 	I,
+	/// Load I (CHIP-48-compatible mode)
+	#[display(fmt = "I")]
+	IChip48,
 	/// Load the specific font.
 	#[display(fmt = "Font({:X})", _0)]
 	Font(u8),
@@ -30,6 +33,8 @@ pub enum LoadTarget {
 	/// Load the BCD representation of a register
 	#[display(fmt = "BCD")]
 	Bcd,
+	/// SUPER-CHIP persistent RPL user flags.
+	Rpl,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
@@ -93,18 +98,39 @@ impl LoadInstruction {
 				let from = vm.index_register as usize;
 				let into = into as usize;
 				assert!(from < vm.memory.len() && into < vm.registers.len());
-				let register_range = into..vm.registers.len();
-				let memory_range = from..(from + register_range.len());
+				let register_range = 0..=into;
+				let memory_range = from..(from + into as usize + 1);
 				vm.registers[register_range].copy_from_slice(&vm.memory[memory_range]);
+				vm.index_register += from as u16 + 1;
+			}
+			(LoadTarget::IChip48, LoadTarget::Register(into)) => {
+				let from = vm.index_register as usize;
+				let into = into as usize;
+				assert!(from < vm.memory.len() && into < vm.registers.len());
+				let register_range = 0..=into;
+				let memory_range = from..(from + into as usize + 1);
+				vm.registers[register_range].copy_from_slice(&vm.memory[memory_range]);
+				vm.index_register += from as u16;
 			}
 			(LoadTarget::Register(from), LoadTarget::I) => {
 				let from = from as usize;
 				let into = vm.index_register as usize;
 				assert!(into < vm.memory.len() && from < vm.registers.len());
-				let register_range = from..vm.registers.len();
-				let memory_range = into..(into + register_range.len());
+				let register_range = 0..=into;
+				let memory_range = into..(into + from as usize);
 				vm.memory[memory_range.clone()].copy_from_slice(&vm.registers[register_range]);
 				vm.invalidate_cache(memory_range);
+				vm.index_register += from as u16 + 1;
+			}
+			(LoadTarget::Register(from), LoadTarget::IChip48) => {
+				let from = from as usize;
+				let into = vm.index_register as usize;
+				assert!(into < vm.memory.len() && from < vm.registers.len());
+				let register_range = 0..=into;
+				let memory_range = into..(into + from as usize);
+				vm.memory[memory_range.clone()].copy_from_slice(&vm.registers[register_range]);
+				vm.invalidate_cache(memory_range);
+				vm.index_register += from as u16;
 			}
 			_ => panic!(
 				"invalid load instruction: {:?} => {:?}",

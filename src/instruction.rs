@@ -4,6 +4,8 @@ pub mod draw;
 pub mod load;
 pub mod logical;
 
+use crate::vm::VmMode;
+
 /// A CHIP-8 memory address.
 pub type Address = u16;
 /// A CHIP-8 register.
@@ -33,6 +35,11 @@ pub enum Instruction {
 	/// Fx1E - ADD I, Vx
 	#[display(fmt = "Add V{:X} to I", _0)]
 	AddI(Register),
+	#[display(
+		fmt = "{} High Resolution Mode",
+		"if *_0 { \"Enable\" } else { \"Disable \" }"
+	)]
+	SetHighResolution(bool),
 	/// A loading instruction
 	Load(load::LoadInstruction),
 	/// A branching instruction (00EE, 1NNN, 2NNN, 3XNN, 4XNN, 5XY0 and 9XY0)
@@ -45,13 +52,17 @@ pub enum Instruction {
 
 impl Instruction {
 	/// Parses a CHIP-8 opcode
-	pub fn parse(opcode: u16) -> Option<Self> {
+	pub fn parse(opcode: u16, mode: VmMode) -> Option<Self> {
 		match opcode & 0xF000 {
 			0x0000 => match opcode & 0x00FF {
-				//  00E0 - CLS
+				// 00E0 - CLS
 				0x00E0 => Some(Instruction::Clear),
-				//  00EE - RET
+				// 00EE - RET
 				0x00EE => Some(Instruction::Return),
+				// 00FE - Disable High Resolution Mode
+				0x00FE if mode == VmMode::SuperChip => Some(Instruction::SetHighResolution(false)),
+				// 00FF - Enable High Resolution Mode
+				0x00FF if mode == VmMode::SuperChip => Some(Instruction::SetHighResolution(true)),
 				// 0nnn - SYS addr
 				_ => Some(Instruction::Sys),
 			},
@@ -154,6 +165,18 @@ impl Instruction {
 					inverted: false,
 				})),
 				// 8xy6 - SHR Vx {, Vy}
+				0x0006 if mode == VmMode::Chip8 => {
+					Some(Instruction::Arthimetic(arthimetic::ArthimeticInstruction {
+						op: arthimetic::ArthimeticOp::ShrOld,
+						values: arthimetic::ArthimeticValue::RegisterRegister(
+							((opcode & 0x0F00) >> 8) as Register,
+							((opcode & 0x00F0) >> 4) as Register,
+						),
+						carry_flag: false,
+						inverted: false,
+					}))
+				}
+				// 8xy6 - SHR Vx , Vy
 				0x0006 => Some(Instruction::Arthimetic(arthimetic::ArthimeticInstruction {
 					op: arthimetic::ArthimeticOp::Shr,
 					values: arthimetic::ArthimeticValue::Register(
@@ -172,7 +195,19 @@ impl Instruction {
 					carry_flag: true,
 					inverted: true,
 				})),
-				// 8xyE - SHL Vx {, Vy}
+				// 8xyE - SHL Vx, Vy
+				0x000E if mode == VmMode::Chip8 => {
+					Some(Instruction::Arthimetic(arthimetic::ArthimeticInstruction {
+						op: arthimetic::ArthimeticOp::ShlOld,
+						values: arthimetic::ArthimeticValue::RegisterRegister(
+							((opcode & 0x0F00) >> 8) as Register,
+							((opcode & 0x00F0) >> 4) as Register,
+						),
+						carry_flag: false,
+						inverted: false,
+					}))
+				}
+				// 8xyE - SHL Vx
 				0x000E => Some(Instruction::Arthimetic(arthimetic::ArthimeticInstruction {
 					op: arthimetic::ArthimeticOp::Shl,
 					values: arthimetic::ArthimeticValue::Register(
@@ -197,10 +232,21 @@ impl Instruction {
 				from: load::LoadTarget::Address(opcode & 0x0FFF),
 				into: load::LoadTarget::I,
 			})),
+			// Bxnn - JP V0, addr (CHIP-48)
+			0xB000 if mode != VmMode::Chip8 => {
+				Some(Instruction::Branch(branch::BranchInstruction {
+					branch_type: branch::BranchType::Unconditional,
+					branch_target: branch::BranchTarget::AddressOffset(
+						opcode & 0x0FFF,
+						((opcode & 0x0F00) >> 8) as Register,
+					),
+					inverted: false,
+				}))
+			}
 			// Bnnn - JP V0, addr
 			0xB000 => Some(Instruction::Branch(branch::BranchInstruction {
 				branch_type: branch::BranchType::Unconditional,
-				branch_target: branch::BranchTarget::Address(opcode & 0x0FFF),
+				branch_target: branch::BranchTarget::AddressOffset(opcode & 0x0FFF, 0),
 				inverted: false,
 			})),
 			// Cxkk - RND Vx, byte
@@ -266,13 +312,35 @@ impl Instruction {
 				// Fx55 - LD [I], Vx
 				0x0055 => Some(Instruction::Load(load::LoadInstruction {
 					from: load::LoadTarget::Register(((opcode & 0x0F00) >> 8) as Register),
-					into: load::LoadTarget::I,
+					into: if mode != VmMode::Chip8 {
+						load::LoadTarget::IChip48
+					} else {
+						load::LoadTarget::I
+					},
 				})),
 				// Fx65 - LD Vx, [I]
 				0x0065 => Some(Instruction::Load(load::LoadInstruction {
-					from: load::LoadTarget::I,
+					from: if mode != VmMode::Chip8 {
+						load::LoadTarget::IChip48
+					} else {
+						load::LoadTarget::I
+					},
 					into: load::LoadTarget::Register(((opcode & 0x0F00) >> 8) as Register),
 				})),
+				// FX75 - store V0..VX in RPL user flags
+				0x0075 if mode == VmMode::SuperChip => {
+					Some(Instruction::Load(load::LoadInstruction {
+						from: load::LoadTarget::Register(((opcode & 0x0F00) >> 8) as Register),
+						into: load::LoadTarget::Rpl,
+					}))
+				}
+				// FX85 - load V0..VX from RPL user flags
+				0x0085 if mode == VmMode::SuperChip => {
+					Some(Instruction::Load(load::LoadInstruction {
+						from: load::LoadTarget::Rpl,
+						into: load::LoadTarget::Register(((opcode & 0x0F00) >> 8) as Register),
+					}))
+				}
 				_ => None,
 			},
 			_ => None,
