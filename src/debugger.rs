@@ -4,15 +4,15 @@ use egui::{
 	Label, Window,
 };
 
-pub fn debugger(vm: &mut Vm, paused: &mut bool) {
+pub fn debugger(vm: &mut Vm) {
 	egui_macroquad::ui(|egui_ctx| {
 		let mut frame = Frame::default();
 		frame.fill[3] = 0xF0;
 		Window::new("Debugger").frame(frame).show(egui_ctx, |ui| {
-			if *paused && ui.button("Unpause").clicked() {
-				*paused = false;
-			} else if !*paused && ui.button("Pause").clicked() {
-				*paused = true;
+			if vm.paused && ui.button("Unpause").clicked() {
+				vm.paused = false;
+			} else if !vm.paused && ui.button("Pause").clicked() {
+				vm.paused = true;
 			}
 			if ui.button("Single Step").clicked() {
 				vm.execute();
@@ -24,11 +24,14 @@ pub fn debugger(vm: &mut Vm, paused: &mut bool) {
 				"Cached Instructions: {}",
 				vm.instruction_cache.len()
 			));
+			ui.label(format!("Cycle {}", vm.cycles));
+			ui.label(format!("Last cycle took {:?}", vm.last_cycle_time));
+			ui.label(format!("Average cycle time: {:?}", vm.average_cycle_time));
 			ui.collapsing("Registers", |ui| {
 				for v in 0x0..=0xF {
 					ui.horizontal(|ui| {
 						ui.add(Label::new(format!("V{:X}", v)).strong().monospace());
-						if *paused {
+						if vm.paused {
 							let mut x = format!("0x{:X}", vm.registers[v as usize]);
 							ui.text_edit_singleline(&mut x);
 							vm.registers[v as usize] =
@@ -43,7 +46,7 @@ pub fn debugger(vm: &mut Vm, paused: &mut bool) {
 				}
 				ui.horizontal(|ui| {
 					ui.add(Label::new("I ").strong().monospace());
-					if *paused {
+					if vm.paused {
 						let mut x = format!("0x{:X}", vm.index_register);
 						ui.text_edit_singleline(&mut x);
 						vm.index_register =
@@ -55,7 +58,7 @@ pub fn debugger(vm: &mut Vm, paused: &mut bool) {
 				});
 				ui.horizontal(|ui| {
 					ui.add(Label::new("PC").strong().monospace());
-					if *paused {
+					if vm.paused {
 						let mut x = format!("0x{:X}", vm.program_counter);
 						ui.text_edit_singleline(&mut x);
 						vm.program_counter =

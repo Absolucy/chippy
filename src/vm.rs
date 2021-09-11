@@ -2,7 +2,10 @@ use crate::instruction::{draw, Address, Instruction};
 use bitvec::{array::BitArray, BitArr};
 use fnv::FnvHashMap;
 use nanorand::Rng;
-use std::ops::RangeBounds;
+use std::{
+	ops::RangeBounds,
+	time::{Duration, Instant},
+};
 
 const FONT: [u8; 80] = [
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -45,6 +48,14 @@ pub struct Vm {
 	pub keypad: BitArr!(for 0xF),
 	/// The display of the CHIP-8 virtual machine.
 	pub display: BitArr!(for 64 * 32),
+	/// Whether the CHIP-8 virtual machine is paused or not.
+	pub paused: bool,
+	/// The number of cycles that the CHIP-8 virtual machine has executed.
+	pub cycles: usize,
+	/// How long the last cycle took for the CHIP-8 virtual machine to execute.
+	pub last_cycle_time: Duration,
+	/// The average cycle time of the CHIP-8 virtual machine.
+	pub average_cycle_time: Duration,
 }
 
 impl Vm {
@@ -76,7 +87,11 @@ impl Vm {
 	}
 
 	pub fn execute(&mut self) {
+		if self.paused {
+			return;
+		}
 		assert!(self.program_counter >= 0x200 && self.program_counter < 0x1000);
+		let start = Instant::now();
 		// Fetch the instruction from the instruction cache, or parse it into the cache.
 		let instruction = *self
 			.instruction_cache
@@ -140,7 +155,10 @@ impl Vm {
 				ProgramCounter::Next
 			}
 		};
+		self.last_cycle_time = start.elapsed();
+		self.average_cycle_time = (self.average_cycle_time + self.last_cycle_time) / 2;
 		next_step.next(self);
+		self.cycles += 1;
 	}
 }
 
@@ -159,6 +177,10 @@ impl Default for Vm {
 			sound_timer: 0,
 			keypad: BitArray::zeroed(),
 			display: BitArray::zeroed(),
+			paused: false,
+			cycles: 0,
+			last_cycle_time: Duration::new(0, 0),
+			average_cycle_time: Duration::new(0, 0),
 		}
 	}
 }
