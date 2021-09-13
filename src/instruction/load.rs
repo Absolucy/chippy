@@ -132,6 +132,16 @@ impl LoadInstruction {
 				vm.invalidate_cache(memory_range);
 				vm.index_register += from as u16;
 			}
+			(LoadTarget::Register(from), LoadTarget::Rpl) => {
+				let from = from as usize;
+				assert!(from < 8);
+				vm.rpl[0..from].copy_from_slice(&vm.registers[0..from]);
+			}
+			(LoadTarget::Rpl, LoadTarget::Register(into)) => {
+				let into = into as usize;
+				assert!(into < 8);
+				vm.registers[0..into].copy_from_slice(&vm.rpl[0..into]);
+			}
 			_ => panic!(
 				"invalid load instruction: {:?} => {:?}",
 				self.from, self.into

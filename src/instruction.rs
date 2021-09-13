@@ -27,7 +27,7 @@ pub enum Instruction {
 	#[display(fmt = "Random into V{:X} & 0x{:X}", _0, _1)]
 	Random(Register, Value),
 	/// Dxyn - DRW Vx, Vy, nibble
-	#[display(fmt = "Draw Sprite at {},{} with {} rows", _0, _1, _2)]
+	#[display(fmt = "Draw Sprite at V{:X},V{:X} with {} rows", _0, _1, _2)]
 	Draw(Register, Register, Value),
 	/// Fx0A - LD Vx, K
 	#[display(fmt = "Load Key into V{:X}", _0)]

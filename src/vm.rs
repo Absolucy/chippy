@@ -1,5 +1,5 @@
 use crate::instruction::{draw, Address, Instruction};
-use bitvec::{array::BitArray, BitArr};
+use bitvec::{array::BitArray, bitvec, vec::BitVec, BitArr};
 use fnv::FnvHashMap;
 use nanorand::Rng;
 use std::{
@@ -48,7 +48,9 @@ pub struct Vm {
 	/// The keypad of the CHIP-8 virtual machine.
 	pub keypad: BitArr!(for 0xF),
 	/// The display of the CHIP-8 virtual machine.
-	pub display: BitArr!(for 64 * 32),
+	pub display: BitVec,
+	/// The RPL user flags of the CHIP-8 virtual machine.
+	pub rpl: [u8; 8],
 	/// Whether high-resolution mode is enabled or not.
 	pub high_resolution: bool,
 	/// Whether the CHIP-8 virtual machine is paused or not.
@@ -97,6 +99,19 @@ impl Vm {
 	/// Sets the interperter mode of the CHIP-8 virtual machine.
 	pub fn set_mode(&mut self, mode: VmMode) {
 		self.mode = mode;
+	}
+
+	pub fn set_high_resolution(&mut self, high_resolution: bool) {
+		self.high_resolution = high_resolution;
+		self.display.set_all(false);
+		self.display.resize(
+			if self.high_resolution {
+				128 * 64
+			} else {
+				64 * 32
+			},
+			false,
+		);
 	}
 
 	/// Invalidate the instruction cache for a memory range.
@@ -170,7 +185,7 @@ impl Vm {
 				ProgramCounter::Next
 			}
 			Instruction::SetHighResolution(mode) => {
-				self.high_resolution = mode;
+				self.set_high_resolution(mode);
 				ProgramCounter::Next
 			}
 			Instruction::Load(load) => {
@@ -207,7 +222,8 @@ impl Default for Vm {
 			delay_timer: 0,
 			sound_timer: 0,
 			keypad: BitArray::zeroed(),
-			display: BitArray::zeroed(),
+			display: bitvec![0; 64 * 32],
+			rpl: [0; 8],
 			high_resolution: false,
 			paused: true,
 			cycles: 0,
@@ -243,18 +259,4 @@ pub enum VmMode {
 	Chip48,
 	/// Interpert using SUPER-CHIP.
 	SuperChip,
-}
-
-impl VmMode {
-	pub fn is_chip8(&self) -> bool {
-		matches!(self, VmMode::Chip8)
-	}
-
-	pub fn is_chip48(&self) -> bool {
-		matches!(self, VmMode::Chip48 | VmMode::SuperChip)
-	}
-
-	pub fn is_super_chip(&self) -> bool {
-		matches!(self, VmMode::SuperChip)
-	}
 }

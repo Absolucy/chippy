@@ -27,14 +27,18 @@ async fn main() {
 	let mut last_time = Instant::now();
 	let mut show_debugger = false;
 	let mut drawing_area = ui::draw(&mut vm);
+	let (vm_width, vm_height) = (128.0, 64.0);
 	loop {
 		step(&mut vm, &mut last_time);
 		clear_background(BLACK);
-		let (x_scale, y_scale) = (drawing_area.width() / 64.0, drawing_area.height() / 32.0);
+		let (x_scale, y_scale) = (
+			drawing_area.width() / vm_width,
+			drawing_area.height() / vm_height,
+		);
 		let (left, top) = (drawing_area.left(), drawing_area.top());
 		for (idx, pixel) in vm.display.iter().enumerate() {
-			let x = (idx % 64) as f32 * x_scale;
-			let y = (idx / 64) as f32 * y_scale;
+			let x = (idx % vm_width as usize) as f32 * x_scale;
+			let y = (idx / vm_width as usize) as f32 * y_scale;
 			draw_rectangle(
 				left + x,
 				top + y,
